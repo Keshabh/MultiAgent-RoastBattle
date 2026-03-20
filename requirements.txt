@@ -2,5 +2,5 @@ fastapi
 uvicorn
 groq
 langgraph
-ddgs
+duckduckgo-search
 python-dotenv
