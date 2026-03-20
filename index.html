@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roast Battle Arena 🎤</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,400;0,700;0,900;1,700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #ff2020;
+    --blue: #1e90ff;
+    --gold: #ffd700;
+    --bg: #080808;
+    --text: #f5f5f5;
+    --muted: #555;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanlines */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* ── SETUP SCREEN ── */
+  #setupScreen {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 15vw, 9rem);
+    letter-spacing: 8px;
+    line-height: 0.9;
+    text-align: center;
+    background: linear-gradient(180deg, #fff 0%, var(--gold) 50%, #ff6b00 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 7px;
+    color: var(--muted); text-align: center;
+    margin-top: 6px; margin-bottom: 3rem;
+    text-transform: uppercase;
+  }
+
+  .fighters-row {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 10px; align-items: center;
+    width: 100%; max-width: 600px;
+    margin-bottom: 1.5rem;
+  }
+
+  .fighter-col { display: flex; flex-direction: column; gap: 6px; }
+
+  .fighter-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .fighter-tag.r { color: var(--red); }
+  .fighter-tag.b { color: var(--blue); }
+
+  .fighter-col input {
+    background: #111; border: 1px solid #2a2a2a;
+    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem; letter-spacing: 2px;
+    padding: 12px 14px; border-radius: 3px;
+    width: 100%; outline: none;
+    transition: border-color 0.2s;
+  }
+  .fighter-col.r input:focus { border-color: var(--red); }
+  .fighter-col.b input:focus { border-color: var(--blue); }
+
+  .vs { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--gold); text-align: center; }
+
+  .start-btn {
+    width: 100%; max-width: 600px;
+    padding: 18px; background: var(--gold);
+    color: #000; border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem; letter-spacing: 5px;
+    cursor: pointer; border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .start-btn:hover { background: #ffe84d; transform: translateY(-2px); }
+  .start-btn:active { transform: translateY(0); }
+  .start-btn:disabled { background: #2a2a2a; color: #555; cursor: not-allowed; transform: none; }
+
+  .setup-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--gold); text-align: center;
+    margin-top: 1.5rem; min-height: 20px;
+    text-transform: uppercase;
+  }
+
+  /* ── BATTLE SCREEN ── */
+  #battleScreen {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+  }
+
+  /* top bar */
+  .top-bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    position: sticky; top: 0;
+    background: rgba(8,8,8,0.97);
+    z-index: 100;
+  }
+
+  .top-fighter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 3px;
+  }
+  .top-fighter.r { color: var(--red); }
+  .top-fighter.b { color: var(--blue); text-align: right; }
+
+  .top-round {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--muted); line-height: 1.8;
+  }
+
+  .top-round span {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem; letter-spacing: 2px;
+    color: var(--gold); line-height: 1;
+  }
+
+  /* main stage */
+  .stage {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 2rem 1rem;
+    min-height: calc(100vh - 120px);
+    position: relative;
+  }
+
+  /* who's up */
+  .now-up {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .now-up.visible { opacity: 1; }
+  .now-up.r { color: var(--red); }
+  .now-up.b { color: var(--blue); }
+
+  /* THE LYRIC DISPLAY — this is the star */
+  .lyric-stage {
+    width: 100%; max-width: 680px;
+    min-height: 280px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px;
+    padding: 1rem 0;
+  }
+
+  .lyric-line {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-style: italic;
+    line-height: 1.3;
+    text-align: center;
+    letter-spacing: 1px;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    width: 100%;
+    padding: 2px 12px;
+  }
+
+  .lyric-line.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .lyric-line.punchline {
+    font-size: 1.3rem;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.4);
+  }
+
+  .lyric-line.r { border-left: 3px solid var(--red); padding-left: 16px; text-align: left; }
+  .lyric-line.b { border-right: 3px solid var(--blue); padding-right: 16px; text-align: right; }
+  .lyric-line.r.punchline { border-color: var(--gold); }
+  .lyric-line.b.punchline { border-color: var(--gold); }
+
+  /* flash on beat */
+  @keyframes flashRed {
+    0% { background: rgba(255,32,32,0.15); }
+    100% { background: transparent; }
+  }
+  @keyframes flashBlue {
+    0% { background: rgba(30,144,255,0.15); }
+    100% { background: transparent; }
+  }
+  @keyframes flashGold {
+    0% { background: rgba(255,215,0,0.2); transform: scale(1.02); }
+    100% { background: transparent; transform: scale(1); }
+  }
+
+  .lyric-line.flash-r { animation: flashRed 0.3s ease forwards; }
+  .lyric-line.flash-b { animation: flashBlue 0.3s ease forwards; }
+  .lyric-line.flash-gold { animation: flashGold 0.4s ease forwards; }
+
+  /* round banner */
+  .round-banner {
+    position: fixed;
+    inset: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .round-banner.show { opacity: 1; pointer-events: all; }
+
+  .round-banner-inner {
+    text-align: center;
+    animation: punchIn 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+  }
+
+  @keyframes punchIn {
+    0% { transform: scale(2); opacity: 0; }
+    60% { transform: scale(0.95); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .round-banner-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 20vw, 12rem);
+    letter-spacing: 10px;
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 60px rgba(255,215,0,0.5);
+  }
+
+  .round-banner-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; letter-spacing: 8px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+  }
+
+  /* winner screen */
+  .winner-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+    padding: 2rem;
+    animation: fadeUp 0.8s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .winner-screen.visible { display: flex; }
+
+  .winner-crown { font-size: 4rem; margin-bottom: 1rem; }
+
+  .winner-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 7px;
+    color: var(--muted); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .winner-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 14vw, 8rem);
+    letter-spacing: 6px; line-height: 0.9;
+    background: linear-gradient(180deg, #fff 0%, var(--gold) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .winner-tagline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem; font-style: italic;
+    color: var(--muted); margin-top: 1rem;
+  }
+
+  .new-battle-btn {
+    margin-top: 2.5rem;
+    padding: 14px 40px; background: none;
+    border: 1px solid var(--gold); color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem; letter-spacing: 5px;
+    cursor: pointer; border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .new-battle-btn:hover { background: rgba(255,215,0,0.1); }
+
+  /* ── MUSIC BAR ── */
+  .music-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(6,6,6,0.97);
+    border-top: 1px solid #1a1a1a;
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 16px;
+    z-index: 200;
+  }
+
+  .music-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--muted); white-space: nowrap;
+  }
+
+  .music-btn {
+    background: none; border: 1px solid #2a2a2a;
+    color: var(--gold);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 2px;
+    padding: 5px 12px; cursor: pointer;
+    border-radius: 2px; transition: all 0.2s;
+  }
+  .music-btn:hover { border-color: var(--gold); }
+
+  .beat-vis {
+    display: flex; gap: 2px; align-items: flex-end; height: 20px;
+  }
+
+  .bv { width: 3px; background: var(--gold); border-radius: 1px; height: 3px; transition: height 0.08s ease; }
+
+  .bpm-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--muted);
+    margin-left: auto; letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="logo">ROAST<br>BATTLE</div>
+  <div class="logo-sub">Multi-Agent · AI · Arena</div>
+
+  <div class="fighters-row">
+    <div class="fighter-col r">
+      <span class="fighter-tag r">🔴 Fighter One</span>
+      <input type="text" id="celeb1" placeholder="Elon Musk" autocomplete="off" />
+    </div>
+    <div class="vs">VS</div>
+    <div class="fighter-col b">
+      <span class="fighter-tag b">🔵 Fighter Two</span>
+      <input type="text" id="celeb2" placeholder="Mark Zuckerberg" autocomplete="off" />
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn" onclick="startBattle()">🎤 START THE BATTLE</button>
+  <div class="setup-status" id="setupStatus"></div>
+</div>
+
+<!-- BATTLE -->
+<div id="battleScreen">
+  <div class="top-bar">
+    <div class="top-fighter r" id="topRed">—</div>
+    <div class="top-round">ROUND<span id="topRound">—</span></div>
+    <div class="top-fighter b" id="topBlue">—</div>
+  </div>
+
+  <div class="stage">
+    <div class="now-up" id="nowUp">— vs —</div>
+    <div class="lyric-stage" id="lyricStage"></div>
+  </div>
+
+  <div class="winner-screen" id="winnerScreen">
+    <div class="winner-crown">👑</div>
+    <div class="winner-label">Battle Champion</div>
+    <div class="winner-name" id="winnerName">—</div>
+    <div class="winner-tagline" id="winnerTagline"></div>
+    <button class="new-battle-btn" onclick="resetBattle()">🔄 NEW BATTLE</button>
+  </div>
+</div>
+
+<!-- ROUND BANNER -->
+<div class="round-banner" id="roundBanner">
+  <div class="round-banner-inner">
+    <div class="round-banner-num" id="roundBannerNum">1</div>
+    <div class="round-banner-label">Round</div>
+  </div>
+</div>
+
+<!-- MUSIC BAR -->
+<div class="music-bar">
+  <span class="music-label">BEAT</span>
+  <button class="music-btn" id="musicBtn" onclick="toggleMusic()">▶ PLAY</button>
+  <div class="beat-vis" id="beatVis">
+    <div class="bv"></div><div class="bv"></div><div class="bv"></div>
+    <div class="bv"></div><div class="bv"></div><div class="bv"></div>
+    <div class="bv"></div><div class="bv"></div><div class="bv"></div>
+    <div class="bv"></div><div class="bv"></div><div class="bv"></div>
+  </div>
+  <span class="bpm-label">88 BPM</span>
+</div>
+
+<script>
+const BACKEND_URL = "http://localhost:8000";
+
+// ══════════════════════════════════════
+// BEAT ENGINE — Web Audio API
+// ══════════════════════════════════════
+let actx = null;
+let beatTimer = null;
+let musicOn = false;
+let nextBeatTime = 0;
+let beatStep = 0;
+const BPM = 88;
+const STEP = 60 / BPM / 4; // 16th note
+
+// beat patterns (16 steps)
+const kick   = [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,1,0];
+const snare  = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
+const hihat  = [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,1];
+const bass   = [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,1,0,0];
+
+function initAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playKick(t) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.connect(g); g.connect(actx.destination);
+  o.frequency.setValueAtTime(180, t);
+  o.frequency.exponentialRampToValueAtTime(0.01, t + 0.35);
+  g.gain.setValueAtTime(1, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  o.start(t); o.stop(t + 0.35);
+}
+
+function playSnare(t) {
+  // noise
+  const buf = actx.createBuffer(1, actx.sampleRate * 0.12, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource();
+  const g = actx.createGain();
+  const f = actx.createBiquadFilter();
+  src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 3000;
+  src.connect(f); f.connect(g); g.connect(actx.destination);
+  g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  src.start(t); src.stop(t + 0.12);
+  // body tone
+  const o = actx.createOscillator(), og = actx.createGain();
+  o.connect(og); og.connect(actx.destination);
+  o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.08);
+  og.gain.setValueAtTime(0.5, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  o.start(t); o.stop(t + 0.1);
+}
+
+function playHihat(t, vol = 0.18) {
+  const buf = actx.createBuffer(1, actx.sampleRate * 0.04, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource();
+  const g = actx.createGain();
+  const f = actx.createBiquadFilter();
+  src.buffer = buf; f.type = 'highpass'; f.frequency.value = 9000;
+  src.connect(f); f.connect(g); g.connect(actx.destination);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  src.start(t); src.stop(t + 0.04);
+}
+
+function playBass(t) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sawtooth';
+  o.connect(g); g.connect(actx.destination);
+  o.frequency.setValueAtTime(60, t);
+  g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  o.start(t); o.stop(t + 0.18);
+}
+
+function scheduleBeat() {
+  while (nextBeatTime < actx.currentTime + 0.2) {
+    const idx = beatStep % 16;
+    if (kick[idx])  playKick(nextBeatTime);
+    if (snare[idx]) playSnare(nextBeatTime);
+    if (hihat[idx]) playHihat(nextBeatTime);
+    if (bass[idx])  playBass(nextBeatTime);
+    nextBeatTime += STEP;
+    beatStep++;
+  }
+}
+
+function startBeat() {
+  initAudio();
+  if (actx.state === 'suspended') actx.resume();
+  nextBeatTime = actx.currentTime;
+  beatTimer = setInterval(scheduleBeat, 50);
+  animateBeatVis();
+}
+
+function stopBeat() {
+  clearInterval(beatTimer); beatTimer = null;
+}
+
+let beatVisRaf = null;
+function animateBeatVis() {
+  const bars = document.querySelectorAll('.bv');
+  function frame() {
+    if (!musicOn) { bars.forEach(b => b.style.height = '3px'); return; }
+    bars.forEach(b => {
+      b.style.height = Math.floor(Math.random() * 18 + 2) + 'px';
+    });
+    beatVisRaf = setTimeout(frame, 80);
+  }
+  frame();
+}
+
+function toggleMusic() {
+  initAudio();
+  if (musicOn) {
+    stopBeat(); musicOn = false;
+    document.getElementById('musicBtn').textContent = '▶ PLAY';
+  } else {
+    startBeat(); musicOn = true;
+    document.getElementById('musicBtn').textContent = '⏸ STOP';
+  }
+}
+
+// ══════════════════════════════════════
+// BATTLE ENGINE
+// ══════════════════════════════════════
+let c1 = '', c2 = '';
+
+function setSetupStatus(msg) {
+  document.getElementById('setupStatus').innerHTML = msg;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// split roast text into lines cleanly
+function parseLines(text) {
+  return text.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 2);
+}
+
+// show round banner (big number punches in)
+async function showRoundBanner(n) {
+  const banner = document.getElementById('roundBanner');
+  document.getElementById('roundBannerNum').textContent = n;
+  banner.classList.add('show');
+  await sleep(1400);
+  banner.classList.remove('show');
+  await sleep(300);
+}
+
+// display one full verse line by line on the beat
+async function displayVerse(lines, side) {
+  const stage = document.getElementById('lyricStage');
+  stage.innerHTML = '';
+
+  // show "now up" tag
+  const nowUp = document.getElementById('nowUp');
+  nowUp.textContent = (side === 'r' ? c1 : c2).toUpperCase() + ' SPITS 🎤';
+  nowUp.className = `now-up visible ${side}`;
+
+  // line delay based on BPM — one line every ~2 beats
+  const lineDelay = (60000 / BPM) * 4.5;
+
+  for (let i = 0; i < lines.length; i++) {
+    const isPunchline = i === lines.length - 1; // last line = punchline
+
+    const el = document.createElement('div');
+    el.className = `lyric-line ${side}${isPunchline ? ' punchline' : ''}`;
+    el.textContent = lines[i];
+    stage.appendChild(el);
+
+    await sleep(60);
+    el.classList.add('visible');
+
+    // flash effect on beat hit
+    await sleep(120);
+    el.classList.add(isPunchline ? 'flash-gold' : `flash-${side}`);
+
+    // scroll into view
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    if (i < lines.length - 1) {
+      await sleep(lineDelay - 180);
+    } else {
+      // punchline — hold longer
+      await sleep(lineDelay * 3);
+    }
+  }
+
+  // brief pause after verse
+  await sleep(500);
+  nowUp.classList.remove('visible');
+  await sleep(400);
+}
+
+async function startBattle() {
+  c1 = document.getElementById('celeb1').value.trim();
+  c2 = document.getElementById('celeb2').value.trim();
+  if (!c1 || !c2) { setSetupStatus('⚠ Enter both names'); return; }
+
+  document.getElementById('startBtn').disabled = true;
+  setSetupStatus('🔍 Researching fighters...');
+
+  // start music
+  if (!musicOn) toggleMusic();
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/battle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ celeb1: c1, celeb2: c2 })
+    });
+    if (!res.ok) throw new Error('Backend error ' + res.status);
+    const data = await res.json();
+
+    // switch to battle screen
+    document.getElementById('setupScreen').style.display = 'none';
+    const bs = document.getElementById('battleScreen');
+    bs.style.display = 'flex';
+    document.getElementById('topRed').textContent = c1.toUpperCase();
+    document.getElementById('topBlue').textContent = c2.toUpperCase();
+
+    // play rounds
+    let currentRound = 0;
+    for (const entry of data.rounds) {
+      if (entry.round !== currentRound) {
+        currentRound = entry.round;
+        document.getElementById('topRound').textContent = currentRound;
+        await showRoundBanner(currentRound);
+      }
+
+      const side = entry.celeb === c1 ? 'r' : 'b';
+      const lines = parseLines(entry.line);
+      await displayVerse(lines, side);
+    }
+
+    // winner reveal
+    const lastEntry = data.rounds[data.rounds.length - 1];
+    // winner = whoever had the last word (celeb2 always responds last)
+    const winner = lastEntry.celeb;
+
+    await sleep(800);
+    document.getElementById('lyricStage').innerHTML = '';
+    document.getElementById('nowUp').classList.remove('visible');
+
+    const ws = document.getElementById('winnerScreen');
+    document.getElementById('winnerName').textContent = winner.toUpperCase();
+    document.getElementById('winnerTagline').textContent = `Survived 3 rounds. The crowd has spoken.`;
+    ws.classList.add('visible');
+    ws.scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    console.error(err);
+    setSetupStatus('❌ Backend error — is it running on port 8000?');
+    document.getElementById('startBtn').disabled = false;
+  }
+}
+
+function resetBattle() {
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('battleScreen').style.display = 'none';
+  document.getElementById('winnerScreen').classList.remove('visible');
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('celeb1').value = '';
+  document.getElementById('celeb2').value = '';
+  document.getElementById('lyricStage').innerHTML = '';
+  document.getElementById('topRound').textContent = '—';
+  setSetupStatus('');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('startBtn').disabled) startBattle();
+});
+</script>
+</body>
+</html>
