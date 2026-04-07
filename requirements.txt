@@ -2,5 +2,7 @@ fastapi
 uvicorn
 groq
 langgraph
+langsmith
 duckduckgo-search
+diskcache
 python-dotenv
