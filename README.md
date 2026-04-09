@@ -124,6 +124,8 @@ Enter: Elon Musk  vs  Mark Zuckerberg
 │  Winner revealed with final verdict                     │
 └─────────────────────────────────────────────────────────┘
 ```
+## StateGraph
+<img width="1206" height="553" alt="image" src="https://github.com/user-attachments/assets/7dd54a17-b6f3-49b8-b404-518cfab6e593" />
 
 ---
 
