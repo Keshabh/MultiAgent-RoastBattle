@@ -58,9 +58,11 @@ CACHE_TTL = int(os.getenv("CACHE_TTL_SECONDS", 2_592_000)) #30 days
 # ── FastAPI app ───────────────────────────────────────────────
 app = FastAPI(title="Roast Battle Arena")
 
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=[o.strip() for o in _allowed_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
